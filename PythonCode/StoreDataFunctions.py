@@ -1,5 +1,6 @@
 from Libraries import *
 from Classes import *
+from OtherFunctions import *
 
 # Functions for read the excel
 def DataFrameData(excel_file):
@@ -41,7 +42,7 @@ def DataFrameData(excel_file):
 
     return df_assignments
 
-def CreatePeriods(assignment):
+def StorePeriods(assignment,all_slots):
     days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
     periods_list = []
@@ -54,12 +55,14 @@ def CreatePeriods(assignment):
                 days_assignment.append(day)
                 times_assignment.append(row.iloc[assignment.columns.get_loc(day)])
 
-        period_object = Periods(id,days_assignment,times_assignment)
+        set_slots = AssociatePeriodToSlot(id, days_assignment, times_assignment, all_slots, assignment)
+
+        period_object = Periods(id, days_assignment, times_assignment, set_slots)
         periods_list.append(period_object)
+
     return periods_list
 
-def CreateObjectAssignments(df_assignments):
-    
+def CreateObjectAssignments(df_assignments,all_slots):
     assignment_list = []
 
     for assignment in df_assignments:
@@ -70,7 +73,7 @@ def CreateObjectAssignments(df_assignments):
         qnt_week = assignment.iloc[0, assignment.columns.get_loc('Quantity per week')]
         specific_slottime = assignment.iloc[0, assignment.columns.get_loc('Specific slot time?')]
         task_time = assignment.iloc[0, assignment.columns.get_loc('Task Time [min]')]
-        periods = CreatePeriods(assignment)
+        periods = StorePeriods(assignment,all_slots)
 
         assignment_object = Assignments(id,name,type,priority,qnt_week,specific_slottime,task_time,periods)
         assignment_list.append(assignment_object)

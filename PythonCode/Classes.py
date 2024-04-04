@@ -12,7 +12,8 @@ class Assignments:
         self.periods = periods
 
 class Periods:
-    def __init__(self, id, day, time):
+    def __init__(self, id, day, time, slots):
         self.id = id
         self.day = day
         self.time = time
+        self.slots = slots

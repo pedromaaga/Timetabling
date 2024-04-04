@@ -4,10 +4,20 @@
 from Libraries import *
 from StoreDataFunctions import *
 from Classes import *
+from OtherFunctions import *
 
-# Read input table
+# Input Parameters - Vai ser coisa do excel, depois implementar
+delta_time = 10            # [minutes] Time minimum of the grid
+
+wake_time = ['6:00','6:00','6:00','6:00','6:00','6:00','6:00']
+sleep_time = ['20:00','20:00','20:00','20:00','20:00','20:00','20:00']
+
+# Create time slots
+all_slots = CreatSlots(wake_time,sleep_time,delta_time)
+
+# Read assignments from excel file
 excel_file = 'C:\\Users\\pedro\\OneDrive\\Documentos\\Projects\\Timetabling\\InputTable.xlsx'
 df_assignments = DataFrameData(excel_file)
-assignments = CreateObjectAssignments(df_assignments)
+assignments = CreateObjectAssignments(df_assignments,all_slots)
 
 # Think about how to do the optimization
