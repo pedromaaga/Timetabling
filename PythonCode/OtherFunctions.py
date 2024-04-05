@@ -8,66 +8,49 @@ def MinutesAvailableBetween2Times(time_start, time_final):
 
     return (hours_final * 60 + minutes_final) - (hours_start * 60 + minutes_start)
 
-def CreatSlots(wake_time, sleep_time, delta_time):
+def day_to_number(day):
+    days_of_week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    return days_of_week.index(day)
 
-    slot_index = 0
-    slots = {}
-    days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    for index, day in enumerate(days):
-        
-        initial_time = datetime.strptime(wake_time[index], '%H:%M')
-        end_time = datetime.strptime(sleep_time[index], '%H:%M')
+def getNewPossiblePeriod(assignment):
 
-        interval = timedelta(minutes=delta_time)
+    period_scheduled = {}
 
-        current_time = initial_time
-        while current_time < end_time:
-            slot_index += 1
-            slots[slot_index] = {'day': day, 'start': current_time.strftime('%H:%M'), 'end': (current_time+interval).strftime('%H:%M')}
-            current_time += interval
+    # Select a period id at random
+    id_period = random.choice(range(0,len(assignment.periods)))
+    available_times = assignment.periods[id_period].available
 
-    return slots
+    # Select the days that happens the activity
+    days = []
+    for index_time in available_times:
+        time = available_times[index_time]
+        days.append(time['day'])
+    days = list(set(days))
 
-def AssociatePeriodToSlot(id, days_assignment, times_assignment, all_slots, assignment):
+    
+    days = random.sample(days, k=int(assignment.qnt_week))
 
-    possible_slots = {}
-    interval = timedelta(minutes=assignment.iloc[0, assignment.columns.get_loc('Task Time [min]')])
-    jj = 1
+    # Select slots for each day that satisfy the 2 previous conditions 
+    for i, day in enumerate(days, start=1):
+        list_available_dailyperiod = []
+        for index_time in available_times:
+            time = available_times[index_time]
+            if time['day'] == day:
+                list_available_dailyperiod.append(index_time)
 
-    for i in range(len(times_assignment)):
-        slots_inside = []
+        # Select random a period available in that day
+        period_scheduled[i] = available_times[random.choice(list_available_dailyperiod)]
+    
+    # Arange the period schedule in the week days sequence
+    period_scheduled_order = dict(sorted(period_scheduled.items(), key=lambda item: day_to_number(item[1]['day'])))
 
-        assignment_start, assignment_end = times_assignment[i].split(' - ')
-        initial_time_task = datetime.strptime(assignment_start, '%H:%M')
-        end_time_task = datetime.strptime(assignment_end, '%H:%M')
+    i = 0
+    for index in period_scheduled_order:
+        i += 1
+        period_scheduled[i] = period_scheduled_order[index]
 
-        for index_s in all_slots:
-            s = all_slots[index_s]
-            time_start_s = datetime.strptime(s['start'], '%H:%M')
-            time_end_s = datetime.strptime(s['end'], '%H:%M')
+    return period_scheduled
 
-            if (initial_time_task <= time_start_s < end_time_task) and (initial_time_task < time_end_s <= end_time_task) and s['day'] == days_assignment[i]:
-                slots_inside.append(index_s)
 
-        for index_s in slots_inside:
-            s = all_slots[index_s]
-            time_start_s = datetime.strptime(s['start'], '%H:%M')
-            time_end_s = datetime.strptime(s['end'], '%H:%M')
 
-            current_time = time_start_s + interval
-
-            if current_time > end_time_task:
-                break
-
-            j = index_s
-            list_slots = []
-            while time_end_s <= current_time:
-                s = all_slots[j]
-                time_end_s = datetime.strptime(s['end'], '%H:%M')
-                list_slots.append(j)
-                j += 1
-            
-            possible_slots[jj] = {'ID': id, 'day': days_assignment[i], 'set': list_slots}
-            jj += 1
-
-    return possible_slots
+    
