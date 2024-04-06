@@ -12,7 +12,7 @@ def day_to_number(day):
     days_of_week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     return days_of_week.index(day)
 
-def getNewPossiblePeriod(assignment):
+def getStartPossiblePeriod(assignment):
 
     period_scheduled = {}
 
@@ -50,7 +50,3 @@ def getNewPossiblePeriod(assignment):
         period_scheduled[i] = period_scheduled_order[index]
 
     return period_scheduled
-
-
-
-    
