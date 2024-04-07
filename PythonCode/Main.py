@@ -1,30 +1,25 @@
 # Main
 
-# Import files
+## Import files
 from StoreDataFunctions import *
 from Classes import *
 from OtherFunctions import *
 from OptimizationFunctions import *
 
-# Input Parameters - Vai ser coisa do excel, depois implementar
-delta_time = 10            # [minutes] Time minimum of the grid
+## Input Parameters
+# Excel file
+excel_file = 'C:\\Users\\pedro\\OneDrive\\Documentos\\Projects\\Timetabling\\InputTable.xlsx'
 
-wake_time = ['6:00','6:00','6:00','6:00','6:00','6:00','6:00']
-sleep_time = ['20:00','20:00','20:00','20:00','20:00','20:00','20:00']
-
-tabu_list_size = 10
-max_iterations = 10
-num_runs = 1
+# Parameters of the optimization program
+wake_time, sleep_time, delta_time, tabu_list_size, max_iterations, num_runs = ParametersOptimizationProgram(excel_file)
 
 # Create time slots
 all_slots = CreatSlots(wake_time,sleep_time,delta_time)
 
 # Read assignments from excel file
-excel_file = 'C:\\Users\\pedro\\OneDrive\\Documentos\\Projects\\Timetabling\\InputTable.xlsx'
-df_assignments = DataFrameData(excel_file)
+df_assignments = DataFrameDataTime(excel_file)
 assignments = CreateObjectAssignments(df_assignments,all_slots)
 
-
-# Think about how to do the optimization
+## Optimization program
 TimeTabling = runOptimizationProgram(assignments, max_iterations, tabu_list_size, num_runs)
 PlotResults(TimeTabling)
