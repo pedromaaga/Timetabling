@@ -2,17 +2,30 @@ from OtherFunctions import *
 
 ### Optimization functions
 
+def ParametersOptimizationProgram(excel_file):
+    # Store wake time and sleep time
+    df_times = pd.read_excel(excel_file, header=None, skiprows=8, nrows=2, usecols="K:Q")
+    df_times = df_times.apply(lambda x: x.map(lambda y: y.strftime('%H:%M')))
+    wake_time = df_times.iloc[0].tolist()
+    sleep_time = df_times.iloc[1].tolist()
+    
+    # Store technical parameters
+    df_parameters = pd.read_excel(excel_file, header=None, skiprows=8, nrows=1, usecols="V:Y")
+    tabu_list_size, max_iterations, num_runs, delta_time = df_parameters.iloc[0]
+
+    return wake_time, sleep_time, delta_time, tabu_list_size, max_iterations, num_runs
+
 ## Main functions
-def runOptimizationProgram(assignments, max_iterations, tabu_list_size, num_runs):
+def runOptimizationProgram(assignments, max_iterations, tabu_list_size, num_runs, other_conditions):
 
     if IsThereNeighboors(assignments):
-        best_solution = RunTabuMultipleTimes(assignments, max_iterations, tabu_list_size, num_runs)    
+        best_solution = RunTabuMultipleTimes(assignments, max_iterations, tabu_list_size, num_runs, other_conditions)    
     else:
         best_solution = GenerateInitialSolution(assignments)
 
     return best_solution
 
-def TabuAlgorithm(assignments, max_iterations, tabu_list_size):
+def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions):
     # 1 - Generate initial solution
     current_solution = GenerateInitialSolution(assignments)
     # 2 - Update the best solution
@@ -31,7 +44,7 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size):
         # Evaluate neighborhoods and select the best non-tabu solution
         for neighbor in neighboors_solution:
             if neighbor not in tabu_list:  # Check if neighbor is not in tabu list
-                obj_value, _ = ObjectiveFunction(neighbor)
+                obj_value, _ = ObjectiveFunction(neighbor, other_conditions)
                 if obj_value < best_neighbor_obj:
                     best_neighbor = neighbor
                     best_neighbor_obj = obj_value
@@ -40,7 +53,7 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size):
         # Update current_solution and best_solution
         if best_neighbor is not None:
             current_solution = best_neighbor
-            best_cost, _ = ObjectiveFunction(best_solution)
+            best_cost, _ = ObjectiveFunction(best_solution, other_conditions)
             if best_neighbor_obj < best_cost:
                 best_solution = best_neighbor
         
@@ -52,13 +65,13 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size):
 
     return best_solution
 
-def RunTabuMultipleTimes(assignments, max_iterations, tabu_list_size, num_runs):
+def RunTabuMultipleTimes(assignments, max_iterations, tabu_list_size, num_runs, other_conditions):
     best_solution = None
     best_cost = float('inf')
 
     for _ in range(num_runs):
-        current_solution = TabuAlgorithm(assignments, max_iterations, tabu_list_size)
-        current_cost, _ = ObjectiveFunction(assignments)
+        current_solution = TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
+        current_cost, _ = ObjectiveFunction(assignments, other_conditions)
 
         if current_cost < best_cost:
             best_solution = current_solution
@@ -122,17 +135,22 @@ def IsThereNeighboors(assignments):
     return False
 
 ## Cost function
-def ObjectiveFunction(assignments):
+def ObjectiveFunction(assignments, other_conditions):
     # Weights
-    W_HC = [1000, 2000]
+    W_HC = [5000, 4000]
+    W_SC = [100]
     all_overview = []
     # Hard Constraints
-    Z_HC_1, overviewHC1 = HardConstraint1(assignments)
+    _, Z_HC_1, overviewHC1 = HardConstraint1(assignments)
     all_overview.append(overviewHC1)
-    Z_HC_2, overviewHC2 = HardConstraint2(assignments)
+    _, Z_HC_2, overviewHC2 = HardConstraint2(assignments)
     all_overview.append(overviewHC2)
 
     Z_HC = W_HC[0]*Z_HC_1 + W_HC[1]*Z_HC_2
+
+    # Soft Constraints
+    Z_SC_1 = SoftConstraint1(assignments, other_conditions)
+    Z_SC = W_SC[0]*Z_SC_1
     Z = Z_HC
 
     return Z, all_overview
@@ -144,21 +162,24 @@ def ObjectiveFunction(assignments):
 def HardConstraint1(assignments):
 
     overviewHC1 = ['Overview Hard Constraint 1']
-    sum = 0
+    value_Z = 0
+    flag = 0
     for assignment in assignments:
         if assignment.period_scheduled == 0:   # 0 is the default value
             overviewHC1.append(f'Violation - {assignment.name} is not scheduled')
-            sum = sum + 1
-    if sum == 0:
+            flag += 1
+            value_Z += assignment.getPriority()
+    if flag == 0:
         overviewHC1.append('All assignments are scheduled.')
     
-    return sum, overviewHC1
+    return flag, value_Z, overviewHC1
 
 # 2 - Only one assignment must be scheduled in a specific set of slots
 def HardConstraint2(assignments):
 
     overviewHC2 = ['Overview Hard Constraint 2']
-    sum = 0
+    value_Z = 0
+    flag = 0
     for index, current_assignment in enumerate(assignments):
         slots_current_assignment = []
         for key, value in current_assignment.period_scheduled.items():
@@ -182,21 +203,37 @@ def HardConstraint2(assignments):
 
             if qnt > 1:
                 overviewHC2.append(f'Violation: Overlapping slots between assignments {current_assignment.name} and {next_assignment.name}')
-                sum += 1
+                flag += 1
+                value_Z += current_assignment.getPriority()
 
-    if sum == 0:
+    if flag == 0:
         overviewHC2.append('No overlapping intervals between assessments.')
 
-    return sum, overviewHC2
+    return flag, value_Z, overviewHC2
 
 # Soft constraints
-# 1 - 
+# Priorities in week distribution
+def SoftConstraint1(assignments, other_conditions):
+    # Get week distribution
+    week_distribution = getWeekDistribution(assignments)
+
+    # Condition 1
+    free_days = np.sum(week_distribution[week_distribution==0])
+    condition1 = (7 - free_days)/7*other_conditions[0]
+    # Condidition 2
+    coef_variation = np.std(week_distribution)/np.mean(week_distribution) # Calculate the coefficient of variation
+    condition2 = coef_variation*other_conditions[1]
+    # Condition 3
+    weekend_assign = np.sum(week_distribution[4:6])
+    condition3 = weekend_assign/np.sum(week_distribution)*other_conditions[2]
+    
+    Z_SC_1 = condition1 + condition2 + condition3
+    return Z_SC_1
 
 ## Plot results
-
-def PlotResults(TimeTabling):
+def PlotResults(TimeTabling, other_conditions):
     print('----------------')
-    Z, overview = ObjectiveFunction(TimeTabling)
+    Z, overview = ObjectiveFunction(TimeTabling, other_conditions)
 
     print('------------------------------------------------------')
     print('---------------- Overview constraints ----------------')

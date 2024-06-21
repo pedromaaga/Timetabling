@@ -18,6 +18,14 @@ class Assignment:
 
     def getPeriodScheduled(self):
         return self.period_scheduled
+    
+    def getPriority(self):
+        if self.priority == 1:
+            return 10
+        elif self.priority == 2:
+            return 5
+        else:
+            return 1
 
 class Periods:
     def __init__(self, id, available):

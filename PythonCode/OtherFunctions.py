@@ -50,3 +50,21 @@ def getStartPossiblePeriod(assignment):
         period_scheduled[i] = period_scheduled_order[index]
 
     return period_scheduled
+
+def getWeekDistribution(assignments):
+    # Define the days of the week
+    days_of_week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    day_index_map = {day: idx for idx, day in enumerate(days_of_week)}
+    
+    # Initialize assignments count per day
+    assignments_a_day = [0] * 7
+    
+    # Count assignments for each day
+    for assignment in assignments:
+        time_scheduled = assignment.period_scheduled
+        for index in time_scheduled:
+            day_assignment = time_scheduled[index]['day']
+            if day_assignment in day_index_map:
+                assignments_a_day[day_index_map[day_assignment]] += 1
+                
+    return assignments_a_day

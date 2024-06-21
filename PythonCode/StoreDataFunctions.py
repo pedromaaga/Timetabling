@@ -1,21 +1,9 @@
 from Classes import *
 from OtherFunctions import *
 
-# Functions for read the excel
-def ParametersOptimizationProgram(excel_file):
-    # Store wake time and sleep time
-    df_times = pd.read_excel(excel_file, header=None, skiprows=8, nrows=2, usecols="K:Q")
-    df_times = df_times.apply(lambda x: x.map(lambda y: y.strftime('%H:%M')))
-    wake_time = df_times.iloc[0].tolist()
-    sleep_time = df_times.iloc[1].tolist()
-    
-    # Store technical parameters
-    df_parameters = pd.read_excel(excel_file, header=None, skiprows=8, nrows=1, usecols="V:Y")
-    tabu_list_size, max_iterations, num_runs, delta_time = df_parameters.iloc[0]
+# Functions to read the excel content
 
-    return wake_time, sleep_time, delta_time, tabu_list_size, max_iterations, num_runs
-
-def DataFrameDataTime(excel_file):
+def Excelfile2Dataframe(excel_file):
     columns = ['ID', 'Assignment', 'Type', 'Priority', 'Quantity per week', 'Specific slot time?', 'Task Time [min]', 'ID Period', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
     df = pd.read_excel(excel_file, skiprows=10, usecols=columns)
@@ -155,3 +143,11 @@ def CreatSlots(wake_time, sleep_time, delta_time):
             current_time += interval
 
     return slots
+
+def OtherConditions(excel_file):
+    conditions = []
+    df_conditions = pd.read_excel(excel_file, header=None, skiprows=13, nrows=5, usecols="Y")
+    for index, row in df_conditions.iterrows():
+        if pd.notnull(row.iloc[0]):
+            conditions.append(row.iloc[0])
+    return conditions
