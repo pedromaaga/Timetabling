@@ -24,3 +24,5 @@ assignments = CreateObjectAssignments(df_assignments,all_slots)
 ## Optimization program
 TimeTabling = runOptimizationProgram(assignments, max_iterations, tabu_list_size, num_runs, other_conditions)
 PlotResults(TimeTabling, other_conditions)
+
+## Write in the Excel file the results
