@@ -2,6 +2,36 @@ from Libraries import *
 
 # Other functions
 
+def select_excel_file():
+    # Create a Tkinter root window (it will be hidden)
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+
+    # Open the file dialog to select an Excel file
+    file_path = filedialog.askopenfilename(
+        title="Select an Excel file",
+        filetypes=(("Excel files", "*.xlsx;*.xls"), ("All files", "*.*"))
+    )
+
+    # Check if a file was selected
+    if file_path:
+        # Check the file extension
+        file_extension = os.path.splitext(file_path)[1].lower()
+        if file_extension in ['.xlsx', '.xls']:
+            try:
+                # Attempt to read the file with pandas to ensure it's a valid Excel file
+                pd.read_excel(file_path)
+                return file_path
+            except Exception as e:
+                print(f"\tThe selected file is not a valid Excel file: {e}")
+                return None
+        else:
+            print("\tThe selected file is not an Excel file.")
+            return None
+    else:
+        print("\tNo file selected")
+        return None
+    
 def MinutesAvailableBetween2Times(time_start, time_final):
     hours_start, minutes_start = map(int, time_start.split(':'))
     hours_final, minutes_final = map(int, time_final.split(':'))

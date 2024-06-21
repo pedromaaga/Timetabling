@@ -151,7 +151,7 @@ def ObjectiveFunction(assignments, other_conditions):
     # Soft Constraints
     Z_SC_1 = SoftConstraint1(assignments, other_conditions)
     Z_SC = W_SC[0]*Z_SC_1
-    Z = Z_HC
+    Z = Z_HC + Z_SC
 
     return Z, all_overview
 
@@ -212,7 +212,7 @@ def HardConstraint2(assignments):
     return flag, value_Z, overviewHC2
 
 # Soft constraints
-# Priorities in week distribution
+# 1 - Priorities in week distribution
 def SoftConstraint1(assignments, other_conditions):
     # Get week distribution
     week_distribution = getWeekDistribution(assignments)
@@ -232,9 +232,7 @@ def SoftConstraint1(assignments, other_conditions):
 
 ## Plot results
 def PlotResults(TimeTabling, other_conditions):
-    print('----------------')
     Z, overview = ObjectiveFunction(TimeTabling, other_conditions)
-
     print('------------------------------------------------------')
     print('---------------- Overview constraints ----------------')
     print(f'Objective Function = {Z}')
