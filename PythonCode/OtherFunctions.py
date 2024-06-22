@@ -32,6 +32,40 @@ def select_excel_file():
         print("\tNo file selected")
         return None
     
+def menuOptions():
+    # Create a Tkinter root window (it will be hidden)
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+
+    # Define menu options
+    options = {
+        1: "Start program",
+        2: "End program"
+    }
+    
+    # Create the menu message
+    menu_message =  "-------------------------------------------\n"
+    menu_message += "\tTimeTabling program"
+    menu_message += "\n-------------------------------------------\n"
+    menu_message += "\n-------------------------------------------\n"
+    menu_message += "\t\tMenu"
+    for key, value in options.items():
+        menu_message += f"\n{key} - {value}"
+    menu_message += "\n-------------------------------------------\n"
+
+    # Display the dialog to choose an option
+    while True:
+        try:
+            option = simpledialog.askinteger("Menu", menu_message)
+            if option in options:
+                break
+            else:
+                print("Invalid option. Please choose a valid option from the menu.")
+        except ValueError:
+            print("Invalid input. Please enter an integer.")
+
+    return option
+
 def MinutesAvailableBetween2Times(time_start, time_final):
     hours_start, minutes_start = map(int, time_start.split(':'))
     hours_final, minutes_final = map(int, time_final.split(':'))

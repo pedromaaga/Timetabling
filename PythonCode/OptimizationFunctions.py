@@ -1,4 +1,5 @@
-from OtherFunctions import *
+from OtherFunctions import getStartPossiblePeriod, getWeekDistribution, day_to_number
+from Libraries import *
 
 ### Optimization functions
 
@@ -69,7 +70,8 @@ def RunTabuMultipleTimes(assignments, max_iterations, tabu_list_size, num_runs, 
     best_solution = None
     best_cost = float('inf')
 
-    for _ in range(num_runs):
+    for iteration in range(num_runs):
+        print(f"\tProcess {iteration+1}/{num_runs}")
         current_solution = TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
         current_cost, _ = ObjectiveFunction(assignments, other_conditions)
 

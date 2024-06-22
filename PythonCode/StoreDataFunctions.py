@@ -1,5 +1,5 @@
 from Classes import *
-from OtherFunctions import *
+from Libraries import *
 
 # Functions to read the excel content
 
