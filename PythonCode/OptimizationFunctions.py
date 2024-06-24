@@ -17,10 +17,10 @@ def ParametersOptimizationProgram(excel_file):
     return wake_time, sleep_time, delta_time, tabu_list_size, max_iterations, num_runs
 
 ## Main functions
-def runOptimizationProgram(assignments, max_iterations, tabu_list_size, num_runs, other_conditions):
+def runOptimizationProgram(app, assignments, max_iterations, tabu_list_size, num_runs, other_conditions):
 
     if IsThereNeighboors(assignments):
-        best_solution = RunTabuMultipleTimes(assignments, max_iterations, tabu_list_size, num_runs, other_conditions)    
+        best_solution = RunTabuMultipleTimes(app, assignments, max_iterations, tabu_list_size, num_runs, other_conditions)    
     else:
         best_solution = GenerateInitialSolution(assignments)
 
@@ -66,11 +66,15 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
 
     return best_solution
 
-def RunTabuMultipleTimes(assignments, max_iterations, tabu_list_size, num_runs, other_conditions):
+def RunTabuMultipleTimes(app, assignments, max_iterations, tabu_list_size, num_runs, other_conditions):
     best_solution = None
     best_cost = float('inf')
 
+    app.root.after(0, app.updateProcess, f"{((0)/num_runs)*100:.2f}%")
+    app.root.update()
+
     for iteration in range(num_runs):
+        
         print(f"\tProcess {iteration+1}/{num_runs}")
         current_solution = TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
         current_cost, _ = ObjectiveFunction(assignments, other_conditions)
@@ -78,6 +82,9 @@ def RunTabuMultipleTimes(assignments, max_iterations, tabu_list_size, num_runs, 
         if current_cost < best_cost:
             best_solution = current_solution
             best_cost = current_cost
+
+        app.root.after(0, app.updateProcess, f"{((iteration+1)/num_runs)*100:.2f}%")
+        app.root.update()
 
     return best_solution
 
