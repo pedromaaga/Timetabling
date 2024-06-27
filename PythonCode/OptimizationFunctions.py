@@ -1,4 +1,4 @@
-from OtherFunctions import getStartPossiblePeriod, getWeekDistribution, day_to_number
+from OtherFunctions import getStartPossiblePeriod, getWeekDistribution, day_to_number, sortSolution
 from Libraries import *
 
 ### Optimization functions
@@ -24,6 +24,8 @@ def runOptimizationProgram(app, assignments, max_iterations, tabu_list_size, num
     else:
         best_solution = GenerateInitialSolution(assignments)
 
+    for assignment in best_solution:
+        assignment.setPeriodScheduled(sortSolution(assignment.period_scheduled))
     return best_solution
 
 def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions):
@@ -33,6 +35,9 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
     best_solution = current_solution
     # 3 - Start Tabu list
     tabu_list = []
+
+    max_repetitions = 100
+    repetition = 0
 
     for i in range(max_iterations):
         # 4 - Generate a neighbour from the current solution
@@ -44,7 +49,7 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
 
         # Evaluate neighborhoods and select the best non-tabu solution
         for neighbor in neighboors_solution:
-            if neighbor not in tabu_list:  # Check if neighbor is not in tabu list
+            if neighbor not in [s['solution'] for s in tabu_list]:  # Check if neighbor is not in tabu list
                 obj_value, _ = ObjectiveFunction(neighbor, other_conditions)
                 if obj_value < best_neighbor_obj:
                     best_neighbor = neighbor
@@ -55,14 +60,24 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
         if best_neighbor is not None:
             current_solution = best_neighbor
             best_cost, _ = ObjectiveFunction(best_solution, other_conditions)
+
             if best_neighbor_obj < best_cost:
                 best_solution = best_neighbor
         
         # Update tabu list
         if best_neighbor is not None:
-            tabu_list.append(best_neighbor)
+            tabu_list.append({'solution': best_neighbor, 'value': best_neighbor_obj})
+            tabu_list = sorted(tabu_list, key=lambda x: x['value'])
             if len(tabu_list) > tabu_list_size:
-                tabu_list.pop(0)  # Remove oldest entry from tabu list
+                tabu_list.pop(0)  # Remove worst entry from tabu list
+        
+        if best_neighbor_obj == best_cost:
+            repetition += 1
+        else:
+            repetition = 0
+
+        if repetition == max_repetitions:
+            break
 
     return best_solution
 
@@ -70,21 +85,23 @@ def RunTabuMultipleTimes(app, assignments, max_iterations, tabu_list_size, num_r
     best_solution = None
     best_cost = float('inf')
 
-    app.root.after(0, app.updateProcess, f"{((0)/num_runs)*100:.2f}%")
-    app.root.update()
+    app.updateProcess(0/num_runs)
+    objective_values = []
 
     for iteration in range(num_runs):
-        
         print(f"\tProcess {iteration+1}/{num_runs}")
         current_solution = TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
-        current_cost, _ = ObjectiveFunction(assignments, other_conditions)
-
+        current_cost, _ = ObjectiveFunction(current_solution, other_conditions)
+        
         if current_cost < best_cost:
             best_solution = current_solution
             best_cost = current_cost
 
-        app.root.after(0, app.updateProcess, f"{((iteration+1)/num_runs)*100:.2f}%")
-        app.root.update()
+        app.updateProcess((iteration+1)/num_runs)
+        objective_values.append(current_cost)
+
+    app.setObjectiveValues(objective_values)
+    app.setNumberIterations(num_runs)
 
     return best_solution
 
@@ -93,35 +110,41 @@ def GenerateNeighborhood(assignments):
     Neighbors = []
 
     for index, assignment in enumerate(assignments):
-        for set_period in assignment.periods:
-            available_times = set_period.available
-
-            # Extract unique days from available times
-            days = set(time['day'] for time in available_times.values())
-
-            # Generate all possible combinations of required number of days
-            days_combinations = combinations(days, int(assignment.qnt_week))
-
-            for days_combination in days_combinations:
-                all_daily_periods = []
-                for day in days_combination:
-                    list_available_dailyperiod = [index_time for index_time, time in available_times.items() if time['day'] == day]
-                    all_daily_periods.append(list_available_dailyperiod)
-
-                # Generate the period for each combination of periods
-                periods_combinations = list(itertools.product(*all_daily_periods))
-                for periods in periods_combinations:
-                    period_scheduled = {}
-                    for i, p in enumerate(periods, start=1):
-                        period_scheduled[i] = available_times[p]
-
-                    # Arrange the period schedule in the week days sequence
-                    period_scheduled = dict(sorted(period_scheduled.items(), key=lambda item: day_to_number(item[1]['day'])))
-
-                    if period_scheduled != assignment.period_scheduled:
-                        new_solution = assignments.copy()
-                        new_solution[index].period_scheduled = period_scheduled 
-                        Neighbors.append(new_solution)
+        # Seleciona um período aleatório para alterar
+        set_period = random.choice(assignment.periods)
+        available_times = set_period.available
+        
+        # Extrai dias únicos dos tempos disponíveis
+        days = list(set(time['day'] for time in available_times.values()))
+        
+        # Gera todas as combinações possíveis do número necessário de dias
+        days_combinations = list(itertools.combinations(days, int(assignment.qnt_week)))
+        
+        # Seleciona uma combinação de dias aleatoriamente
+        days_combination = random.choice(days_combinations)
+        
+        all_daily_periods = []
+        for day in days_combination:
+            list_available_dailyperiod = [index_time for index_time, time in available_times.items() if time['day'] == day]
+            all_daily_periods.append(list_available_dailyperiod)
+        
+        # Gera as combinações de períodos para os dias selecionados
+        periods_combinations = list(itertools.product(*all_daily_periods))
+        
+        # Seleciona uma combinação de períodos aleatoriamente
+        periods = random.choice(periods_combinations)
+        
+        period_scheduled = {}
+        for i, p in enumerate(periods, start=1):
+            period_scheduled[i] = available_times[p]
+        
+        # Arranja o período agendado na sequência dos dias da semana
+        period_scheduled = dict(sorted(period_scheduled.items(), key=lambda item: day_to_number(item[1]['day'])))
+        
+        if period_scheduled != assignment.period_scheduled:
+            new_solution = deepcopy(assignments)
+            new_solution[index].period_scheduled = period_scheduled
+            Neighbors.append(new_solution)
     
     return Neighbors
 
@@ -146,8 +169,8 @@ def IsThereNeighboors(assignments):
 ## Cost function
 def ObjectiveFunction(assignments, other_conditions):
     # Weights
-    W_HC = [5000, 4000]
-    W_SC = [100]
+    W_HC = [100000, 100000]
+    W_SC = [100, 100, 100]
     all_overview = []
     # Hard Constraints
     _, Z_HC_1, overviewHC1 = HardConstraint1(assignments)
@@ -159,7 +182,9 @@ def ObjectiveFunction(assignments, other_conditions):
 
     # Soft Constraints
     Z_SC_1 = SoftConstraint1(assignments, other_conditions)
-    Z_SC = W_SC[0]*Z_SC_1
+    Z_SC_2 = SoftConstraint2(assignments, other_conditions)
+    Z_SC_3 = SoftConstraint3(assignments, other_conditions)
+    Z_SC = W_SC[0]*Z_SC_1 + W_SC[1]*Z_SC_2 + W_SC[2]*Z_SC_3
     Z = Z_HC + Z_SC
 
     return Z, all_overview
@@ -226,18 +251,33 @@ def SoftConstraint1(assignments, other_conditions):
     # Get week distribution
     week_distribution = getWeekDistribution(assignments)
 
-    # Condition 1
     free_days = np.sum(week_distribution[week_distribution==0])
     condition1 = (7 - free_days)/7*other_conditions[0]
-    # Condidition 2
+    
+    Z_SC = condition1
+    return Z_SC
+
+# 2 - Priorities in week distribution
+def SoftConstraint2(assignments, other_conditions):
+    # Get week distribution
+    week_distribution = getWeekDistribution(assignments)
+
     coef_variation = np.std(week_distribution)/np.mean(week_distribution) # Calculate the coefficient of variation
     condition2 = coef_variation*other_conditions[1]
-    # Condition 3
+    
+    Z_SC = condition2
+    return Z_SC
+
+# 3 - Priorities in week distribution
+def SoftConstraint3(assignments, other_conditions):
+    # Get week distribution
+    week_distribution = getWeekDistribution(assignments)
+
     weekend_assign = np.sum(week_distribution[4:6])
     condition3 = weekend_assign/np.sum(week_distribution)*other_conditions[2]
     
-    Z_SC_1 = condition1 + condition2 + condition3
-    return Z_SC_1
+    Z_SC = condition3
+    return Z_SC
 
 ## Plot results
 def PlotResults(TimeTabling, other_conditions):

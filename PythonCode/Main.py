@@ -3,21 +3,18 @@
 ## Import files
 from Libraries import *
 from InterfaceClass import TimetablingApp
+from OptimizationFunctions import PlotResults
 
 print("---------------------------------------")
 print("\tTIMETABLING PROGRAM")
 print("---------------------------------------")
 print("\t Process interface")
 
-root = tk.Tk()
+root = ctk.CTk()
 app = TimetablingApp(root)
 root.mainloop()
 
-menu_option = 2
-
-while menu_option != 2:
-    menu_option = 2
-
+PlotResults(app.timetabling, app.other_conditions)
 print("---------------------------------------")
 print("-> End program")
 print("---------------------------------------")

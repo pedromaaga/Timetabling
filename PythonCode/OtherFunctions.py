@@ -7,6 +7,10 @@ def MinutesAvailableBetween2Times(time_start, time_final):
 
     return (hours_final * 60 + minutes_final) - (hours_start * 60 + minutes_start)
 
+def time_to_minutes(time_str):
+    hours, minutes = map(int, time_str.split(':'))
+    return hours * 60 + minutes
+
 def day_to_number(day):
     days_of_week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     return days_of_week.index(day)
@@ -67,3 +71,37 @@ def getWeekDistribution(assignments):
                 assignments_a_day[day_index_map[day_assignment]] += 1
                 
     return assignments_a_day
+
+def adjustAssignmentsWeek(assignments):
+    
+    days_of_week = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    assignments_dict = {day: [] for day in days_of_week}
+
+    for assignment in assignments:
+        time_scheduled = assignment.period_scheduled
+        for index in time_scheduled:
+            name_assignment = assignment.name
+            day_assignment = time_scheduled[index]['day']
+            start_assignment = time_scheduled[index]['Time start']
+            end_assignment = time_scheduled[index]['Time end']
+
+            assignments_dict[day_assignment].append({
+                'name': name_assignment,
+                'Time start': start_assignment,
+                'Time end': end_assignment
+            })
+    
+    # Ordenar as atribuições dentro de cada dia pelo horário de início
+    for day in assignments_dict:
+        assignments_dict[day].sort(key=lambda x: x['Time start'])
+
+    return assignments_dict
+
+def sortSolution(time_scheduled):
+    week_days_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+    sorted_data = sorted(time_scheduled.items(), key=lambda item: (week_days_order.index(item[1]['day']),time_to_minutes(item[1]['Time start'])))
+
+    sorted_data = {i + 1: item[1] for i, item in enumerate(sorted_data)}
+
+    return sorted_data
