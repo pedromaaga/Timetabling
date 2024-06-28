@@ -14,7 +14,8 @@ root = ctk.CTk()
 app = TimetablingApp(root)
 root.mainloop()
 
-PlotResults(app.timetabling, app.other_conditions)
+if app.timetabling != None:
+    PlotResults(app.timetabling, app.other_conditions)
 print("---------------------------------------")
 print("-> End program")
 print("---------------------------------------")

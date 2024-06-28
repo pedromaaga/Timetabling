@@ -24,8 +24,6 @@ def runOptimizationProgram(app, assignments, max_iterations, tabu_list_size, num
     else:
         best_solution = GenerateInitialSolution(assignments)
 
-    for assignment in best_solution:
-        assignment.setPeriodScheduled(sortSolution(assignment.period_scheduled))
     return best_solution
 
 def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions):
@@ -36,8 +34,12 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
     # 3 - Start Tabu list
     tabu_list = []
 
-    max_repetitions = 100
+    max_repetitions = int(0.1*max_iterations)
+    if max_repetitions < 50:
+        max_repetitions = 50
+
     repetition = 0
+    old_best_cost = None
 
     for i in range(max_iterations):
         # 4 - Generate a neighbour from the current solution
@@ -49,7 +51,7 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
 
         # Evaluate neighborhoods and select the best non-tabu solution
         for neighbor in neighboors_solution:
-            if neighbor not in [s['solution'] for s in tabu_list]:  # Check if neighbor is not in tabu list
+            if not equal_results(neighbor, [s['solution'] for s in tabu_list]):  # Check if neighbor is not in tabu list
                 obj_value, _ = ObjectiveFunction(neighbor, other_conditions)
                 if obj_value < best_neighbor_obj:
                     best_neighbor = neighbor
@@ -70,40 +72,47 @@ def TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
             tabu_list = sorted(tabu_list, key=lambda x: x['value'])
             if len(tabu_list) > tabu_list_size:
                 tabu_list.pop(0)  # Remove worst entry from tabu list
-        
-        if best_neighbor_obj == best_cost:
-            repetition += 1
-        else:
-            repetition = 0
+
+        if old_best_cost is not None:
+            if old_best_cost == best_cost:
+                repetition += 1
+            else:
+                repetition = 0
 
         if repetition == max_repetitions:
             break
+        
+        old_best_cost = best_cost
 
-    return best_solution
+    return best_solution, i+1
 
 def RunTabuMultipleTimes(app, assignments, max_iterations, tabu_list_size, num_runs, other_conditions):
-    best_solution = None
-    best_cost = float('inf')
 
     app.updateProcess(0/num_runs)
     objective_values = []
+    all_solutions = []
+    all_iterations = []
 
-    for iteration in range(num_runs):
-        print(f"\tProcess {iteration+1}/{num_runs}")
-        current_solution = TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
+    for run in range(num_runs):
+        print(f"\tProcess {run+1}/{num_runs}")
+        current_solution, iterations = TabuAlgorithm(assignments, max_iterations, tabu_list_size, other_conditions)
         current_cost, _ = ObjectiveFunction(current_solution, other_conditions)
-        
-        if current_cost < best_cost:
-            best_solution = current_solution
-            best_cost = current_cost
 
-        app.updateProcess((iteration+1)/num_runs)
+        for assignment in current_solution:
+            assignment.setPeriodScheduled(sortSolution(assignment.period_scheduled))
+
+        app.updateProcess((run+1)/num_runs)
         objective_values.append(current_cost)
+        all_solutions.append(current_solution)
+        all_iterations.append(iterations)
 
     app.setObjectiveValues(objective_values)
-    app.setNumberIterations(num_runs)
+    app.setNumberRuns(num_runs)
+    app.setNumberIterations(all_iterations)
 
-    return best_solution
+    all_best_solutions = getBestSolutions(all_solutions, min(objective_values), other_conditions)
+
+    return all_best_solutions
 
 ## Functions to generate solutions
 def GenerateNeighborhood(assignments):
@@ -188,6 +197,30 @@ def ObjectiveFunction(assignments, other_conditions):
     Z = Z_HC + Z_SC
 
     return Z, all_overview
+
+def getBestSolutions(all_solutions, best_objective, other_conditions):
+    best_solutions = []
+    for solution in all_solutions:
+        cost, overview = ObjectiveFunction(solution, other_conditions)
+        if cost == best_objective:
+            if not equal_results(solution, best_solutions):
+                best_solutions.append(solution)
+
+    return best_solutions
+
+def equal_results(solution, list_solutions):
+    for existing_solution in list_solutions:
+        if solutions_are_equal(solution, existing_solution):
+            return True
+    return False
+
+def solutions_are_equal(solution1, solution2):
+    if len(solution1) != len(solution2):
+        return False
+    for assignment1, assignment2 in zip(solution1, solution2):
+        if assignment1.period_scheduled != assignment2.period_scheduled:
+            return False
+    return True
 
 ## Constraint functions
 
