@@ -64,8 +64,8 @@ class TimetablingApp:
         for i in range(5):
             self.root.grid_columnconfigure(i, weight=1, minsize=100)
 
-        bg=ctk.CTkImage(light_image=Image.open('Images/background_app.png'), dark_image=Image.open('Images/background_app.png'), size=(500,580))
-        label = ctk.CTkLabel(self.root, text='',image=bg).place(relx=0.5, rely=0.51, anchor='center')
+        #bg=ctk.CTkImage(light_image=Image.open('Images/background_app.png'), dark_image=Image.open('Images/background_app.png'), size=(500,580))
+        #label = ctk.CTkLabel(self.root, text='',image=bg).place(relx=0.5, rely=0.51, anchor='center')
         # Title label
         label = ctk.CTkLabel(self.root, text="TIMETABLING", font=("Roboto", 25, "bold")).grid(row=0, column=0, columnspan=5, pady=10)
 
@@ -180,9 +180,11 @@ class TimetablingApp:
     def clickButtonRun(self):
         ## Optimization program
         print("\n-> Running the optimization program  (...)")
+        self.changeDropdownOptions(reset=1)
         self.results = runOptimizationProgram(self, self.assignments, self.max_iterations, self.tabu_list_size, self.num_runs, self.other_conditions)
         self.setTimetabling(int(self.timetabling_var.get()))
         self.changeDropdownOptions(reset=0)
+        
         self.button_calendar.configure(state="normal")
         self.button_overview.configure(state="normal")
 
@@ -248,9 +250,11 @@ class TimetablingApp:
             self.assignment_end2.set(" ")
             self.assignment_end3.set(" ")
             self.assignment_end4.set(" ")
-            self.box_timetabling.configure(values="1")
+            self.box_timetabling.configure(values=["1"])
+            self.timetabling_var.set("1")
 
         self.box.configure(values=new_options)
+        self.root.update()
         
     def updateProcess(self, status):
         self.process.set(status)
@@ -472,9 +476,9 @@ class OverviewInterface:
         self.plotObjectiveDevelopment()
         ctk.CTkLabel(self.frame_constraints, text="Minimum value:", font=("Helvetica", 13, 'bold')).grid(row=2, column=0, columnspan=2, sticky="e")
         ctk.CTkLabel(self.frame_constraints, text=min(self.getObjectiveValues()), font=("Helvetica", 13, 'bold')).grid(row=2, column=2, columnspan=2)
-        ctk.CTkLabel(self.frame_constraints, text="Mean iterations:", font=("Helvetica", 13, 'bold')).grid(row=3, column=0, columnspan=2, sticky="e")
+        ctk.CTkLabel(self.frame_constraints, text="Average of iterations:", font=("Helvetica", 13, 'bold')).grid(row=3, column=0, columnspan=2, sticky="e")
         ctk.CTkLabel(self.frame_constraints, text=np.mean(self.getNumberIterations()), font=("Helvetica", 13, 'bold')).grid(row=3, column=2, columnspan=2)
-        
+
     def plotObjectiveDevelopment(self):
         # Create a figure with specified size
         frame_graph = ctk.CTkFrame(self.frame_constraints, corner_radius=15, border_width=4,border_color='#104861', height=180, width=290)
